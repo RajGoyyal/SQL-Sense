@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useCallback, useEffect } from 'react';
 import Header from '@/components/Header';
@@ -26,11 +26,13 @@ import { formatSQL } from '@/lib/parser';
 import type { ExampleQuery, SqlDialect, AnalysisResult } from '@/lib/types';
 
 const TABS = [
-  { id: 'explanation', label: '📝 Explanation', shortcut: '1' },
-  { id: 'optimization', label: '⚡ Optimize', shortcut: '2' },
-  { id: 'indexes', label: '🔑 Indexes', shortcut: '3' },
-  { id: 'summary', label: '📋 Summary', shortcut: '4' },
-  { id: 'visualization', label: '🗺️ Schema', shortcut: '5' },
+  { id: 'explanation', label: 'Explanation', shortcut: '1' },
+  { id: 'optimization', label: 'Optimize', shortcut: '2' },
+  { id: 'indexes', label: 'Indexes', shortcut: '3' },
+  { id: 'summary', label: 'Summary', shortcut: '4' },
+  { id: 'visualization', label: 'Schema', shortcut: '5' },
+  { id: 'learning', label: 'Learning Paths', shortcut: '6' },
+  { id: 'practice', label: 'Practice Arena', shortcut: '7' },
 ] as const;
 
 type TabId = typeof TABS[number]['id'];
@@ -115,7 +117,7 @@ export default function HomePage() {
       setSqlValue(formatted);
       toast('SQL formatted!', 'success');
     } catch {
-      toast('Could not format — check syntax', 'warning');
+      toast('Could not format - check syntax', 'warning');
     }
   }, [sqlValue, dialect, toast]);
 
@@ -188,10 +190,10 @@ export default function HomePage() {
         setShortcutsOpen(false);
         return;
       }
-      // Number keys 1-5 for tabs (when results visible)
-      if (result && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      // Number keys 1-7 for tabs
+      if (!e.ctrlKey && !e.metaKey && !e.altKey) {
         const num = parseInt(e.key);
-        if (num >= 1 && num <= 5) {
+        if (num >= 1 && num <= TABS.length) {
           const target = document.activeElement?.tagName;
           if (target !== 'INPUT' && target !== 'TEXTAREA' && !document.activeElement?.classList.contains('cm-content')) {
             setActiveTab(TABS[num - 1].id);
@@ -269,14 +271,14 @@ export default function HomePage() {
               <option value="transactsql">SQL Server</option>
             </select>
             <button className="secondary-btn" onClick={handleFormat} disabled={!sqlValue.trim()} title="Format SQL (Ctrl+Shift+F)">
-              ✨ Format
+              Format
             </button>
             <button className="secondary-btn" onClick={handleShare} disabled={!sqlValue.trim()} title="Share query URL (Ctrl+Shift+S)">
-              🔗 Share
+              Share
             </button>
             {result && (
               <button className="secondary-btn" onClick={handleExportReport} title="Export full analysis as Markdown">
-                📥 Export Report
+                Export Report
               </button>
             )}
           </div>
@@ -294,7 +296,7 @@ export default function HomePage() {
       {/* Error */}
       {error && (
         <div className="error-alert" style={{ animation: 'shake .4s ease' }}>
-          <span className="error-icon">⚠️</span>
+          <span className="error-icon">!</span>
           <div>
             <div className="error-message">{error}</div>
             {errorSuggestion && <div className="error-suggestion">{errorSuggestion}</div>}
@@ -310,65 +312,73 @@ export default function HomePage() {
           onToggleGamification={toggleGamification}
         />
       </div>
-
-      {/* Results */}
-      {result && (
-        <div className="result-section">
-          <div className="tab-bar">
-            {TABS.map((tab, i) => (
-              <button
-                key={tab.id}
-                className={`tab-btn ${activeTab === tab.id ? 'active' : ''}`}
-                onClick={() => setActiveTab(tab.id)}
-                title={`Press ${i + 1} to switch`}
-              >
-                {tab.label}
-                <span className="tab-shortcut">{i + 1}</span>
-              </button>
-            ))}
-          </div>
-
-          <div className="tab-content">
-            {activeTab === 'explanation' && <ExplanationPanel data={result.explanation} />}
-            {activeTab === 'optimization' && <OptimizationPanel data={result.optimization} />}
-            {activeTab === 'indexes' && <IndexPanel data={result.indexes} />}
-            {activeTab === 'summary' && <SummaryPanel data={result.summary} />}
-            {activeTab === 'visualization' && <SchemaVisualizer data={result.visualization} />}
-          </div>
-
-          {meta && (
-            <div className="meta-bar">
-              <span>⚡ Parsed in {meta.parseTimeMs}ms</span>
-              <span>🔍 Analyzed in {meta.analyzeTimeMs}ms</span>
-              <span>🗄️ {meta.dialect}</span>
-              <span>📊 Score: {result.optimization.score}/100</span>
+      {/* Main tabs */}
+      <div className="result-section">
+        <div className="tab-bar">
+          {TABS.map((tab, i) => (
+            <button
+              key={tab.id}
+              className={`tab-btn ${activeTab === tab.id ? 'active' : ''}`}
+              onClick={() => setActiveTab(tab.id)}
+              title={`Press ${i + 1} to switch`}
+            >
+              {tab.label}
+              <span className="tab-shortcut">{i + 1}</span>
+            </button>
+          ))}
+        </div>
+        <div className="tab-content">
+          {activeTab === 'learning' && (
+            <LearningPaths
+              paths={learningPaths}
+              challenges={challenges}
+              onSelectChallenge={(id) => {
+                setSelectedChallengeId(id);
+                setActiveTab('practice');
+              }}
+            />
+          )}
+          {activeTab === 'practice' && (
+            <PracticeArena
+              challenges={challenges}
+              selectedId={selectedChallengeId}
+              onSelect={setSelectedChallengeId}
+              clientId={clientId}
+              progress={progress}
+              onProgressUpdate={saveProgress}
+            />
+          )}
+          {activeTab === 'explanation' && result && <ExplanationPanel data={result.explanation} />}
+          {activeTab === 'optimization' && result && <OptimizationPanel data={result.optimization} />}
+          {activeTab === 'indexes' && result && <IndexPanel data={result.indexes} />}
+          {activeTab === 'summary' && result && <SummaryPanel data={result.summary} />}
+          {activeTab === 'visualization' && result && <SchemaVisualizer data={result.visualization} />}
+          {!result && activeTab !== 'learning' && activeTab !== 'practice' && (
+            <div className="empty-state" style={{ padding: '28px 12px' }}>
+              <h3>Run analysis first</h3>
+              <p>Analyze a query to unlock explanation, optimization, indexes, summary, and schema tabs.</p>
             </div>
           )}
         </div>
-      )}
+        {meta && result && (
+          <div className="meta-bar">
+            <span>Parsed in {meta.parseTimeMs}ms</span>
+            <span>Analyzed in {meta.analyzeTimeMs}ms</span>
+            <span>{meta.dialect}</span>
+            <span>Score: {result.optimization.score}/100</span>
+          </div>
+        )}
+      </div>
 
       {/* Interactive features */}
       <section className="interactive-section">
-        <LearningPaths
-          paths={learningPaths}
-          challenges={challenges}
-          onSelectChallenge={setSelectedChallengeId}
-        />
-        <PracticeArena
-          challenges={challenges}
-          selectedId={selectedChallengeId}
-          onSelect={setSelectedChallengeId}
-          clientId={clientId}
-          progress={progress}
-          onProgressUpdate={saveProgress}
-        />
         <CompareVariants dialect={dialect} />
       </section>
 
       {/* Empty state */}
       {!result && !error && !loading && (
         <div className="empty-state">
-          <div className="empty-state-icon">🔍</div>
+          <div className="empty-state-icon">Search</div>
           <h3>Ready to analyze</h3>
           <p>Paste your SQL query above and click &quot;Analyze Query&quot; or press <kbd className="kbd" style={{ fontSize: '.75rem' }}>Ctrl+Enter</kbd> to get started.</p>
           <p style={{ marginTop: 8, fontSize: '.8rem' }}>Try one of the example queries above!</p>
@@ -377,9 +387,9 @@ export default function HomePage() {
 
       {/* Footer */}
       <footer className="footer">
-        <div>Built with ♥ by SQLSense · <a href="https://github.com" target="_blank" rel="noopener noreferrer">GitHub</a> · MIT License</div>
+        <div>Built by SQLSense | <a href="https://github.com" target="_blank" rel="noopener noreferrer">GitHub</a> | MIT License</div>
         <div style={{ marginTop: 4, fontSize: '.75rem' }}>
-          Press <kbd className="kbd" style={{ fontSize: '.65rem' }}>⌨️</kbd> for keyboard shortcuts
+          Press <kbd className="kbd" style={{ fontSize: '.65rem' }}>Keys</kbd> for keyboard shortcuts
         </div>
       </footer>
 
@@ -400,7 +410,7 @@ export default function HomePage() {
   );
 }
 
-// ─── Markdown Report Generator ─────────────────────────────────
+// â”€â”€â”€ Markdown Report Generator â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function generateMarkdownReport(sql: string, result: AnalysisResult, meta: { parseTimeMs: number; analyzeTimeMs: number } | null): string {
   const lines = [
     '# SQLSense Analysis Report',
@@ -423,7 +433,7 @@ function generateMarkdownReport(sql: string, result: AnalysisResult, meta: { par
     lines.push('### Hints');
     for (const h of result.optimization.hints) {
       lines.push(`- **[${h.severity.toUpperCase()}] ${h.title}**: ${h.message}`);
-      lines.push(`  - 💡 ${h.suggestion}`);
+      lines.push(`  - Tip: ${h.suggestion}`);
     }
     lines.push('');
   }
@@ -449,3 +459,4 @@ function generateMarkdownReport(sql: string, result: AnalysisResult, meta: { par
 
   return lines.join('\n');
 }
+

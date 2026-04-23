@@ -14,6 +14,10 @@ import type {
   ChallengeMeta,
   QuerySummary,
   OptimizationResult,
+  ExplanationResult,
+  IndexSuggestion,
+  VisualizationData,
+  ParsedSchema,
 } from '@/lib/types';
 
 export const runtime = 'nodejs';
@@ -90,7 +94,7 @@ export async function POST(request: NextRequest) {
     const parseTimeMs = Math.round(performance.now() - parseStart);
 
     // Parse schema DDL if provided
-    let schema;
+    let schema: ParsedSchema | undefined;
     if (body.schema && body.schema.trim()) {
       try {
         schema = parseSchema(body.schema);
@@ -102,11 +106,37 @@ export async function POST(request: NextRequest) {
     // Run analysis engines
     const analyzeStart = performance.now();
 
-    const explanation = explain(parsed.ast);
-    const optimization = optimize(parsed.ast, schema);
-    const indexes = suggestIndexes(parsed.ast, schema);
-    const summary = summarize(parsed.ast);
-    const visualization = generateVisualization(summary, schema);
+    const fallbackSummary: QuerySummary = {
+      queryType: 'UNKNOWN',
+      tables: [],
+      columns: [],
+      joins: [],
+      filters: [],
+      groupBy: [],
+      orderBy: [],
+      limit: null,
+      aggregates: [],
+      subqueries: 0,
+      hasDistinct: false,
+      hasHaving: false,
+    };
+    const fallbackExplanation: ExplanationResult = {
+      summary: 'Analysis completed with partial output.',
+      steps: ['Some advanced insights could not be generated for this SQL shape.'],
+    };
+    const fallbackOptimization: OptimizationResult = { score: 50, hints: [] };
+    const fallbackIndexes: IndexSuggestion[] = [];
+    const fallbackVisualization: VisualizationData = { nodes: [], edges: [] };
+
+    const explanation = safeRun(() => explain(parsed.ast), fallbackExplanation, 'explanation');
+    const optimization = safeRun(() => optimize(parsed.ast, schema), fallbackOptimization, 'optimization');
+    const indexes = safeRun(() => suggestIndexes(parsed.ast, schema), fallbackIndexes, 'indexer');
+    const summary = safeRun(() => summarize(parsed.ast), fallbackSummary, 'summary');
+    const visualization = safeRun(
+      () => generateVisualization(summary, schema),
+      fallbackVisualization,
+      'visualization'
+    );
 
     const analyzeTimeMs = Math.round(performance.now() - analyzeStart);
 
@@ -144,6 +174,15 @@ export async function POST(request: NextRequest) {
       },
       { status: 500 }
     );
+  }
+}
+
+function safeRun<T>(fn: () => T, fallback: T, label: string): T {
+  try {
+    return fn();
+  } catch (err) {
+    console.error(`[analyze:${label}]`, err);
+    return fallback;
   }
 }
 

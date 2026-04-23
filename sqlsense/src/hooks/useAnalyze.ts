@@ -13,6 +13,16 @@ interface UseAnalyzeReturn {
   reset: () => void;
 }
 
+interface AnalyzeApiPayload {
+  success?: boolean;
+  data?: AnalysisResult;
+  meta?: AnalysisMeta;
+  error?: {
+    message?: string;
+    suggestion?: string;
+  };
+}
+
 export function useAnalyze(): UseAnalyzeReturn {
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [meta, setMeta] = useState<AnalysisMeta | null>(null);
@@ -28,22 +38,40 @@ export function useAnalyze(): UseAnalyzeReturn {
     setMeta(null);
 
     try {
-      const controller = new AbortController();
-      const timeout = window.setTimeout(() => controller.abort(), 20000);
+      const requestBody = JSON.stringify({ sql, schema, dialect: dialect || 'mysql' });
+      let attempt = 0;
+      let data: AnalyzeApiPayload | null = null;
+      let res: Response | null = null;
+      let contentType = '';
+      let raw = '';
 
-      const res = await fetch('/api/analyze', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sql, schema, dialect: dialect || 'mysql' }),
-        signal: controller.signal,
-      });
-      window.clearTimeout(timeout);
+      while (attempt < 2) {
+        attempt += 1;
+        const controller = new AbortController();
+        const timeout = window.setTimeout(() => controller.abort(), 20000);
+        res = await fetch('/api/analyze', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: requestBody,
+          signal: controller.signal,
+        });
+        window.clearTimeout(timeout);
 
-      const contentType = res.headers.get('content-type') || '';
-      const raw = await res.text();
-      const data = contentType.includes('application/json')
-        ? JSON.parse(raw)
-        : null;
+        contentType = res.headers.get('content-type') || '';
+        raw = await res.text();
+        data = contentType.includes('application/json') ? JSON.parse(raw) : null;
+
+        // Retry once for transient server errors (common during local dev recompilation).
+        if (res.ok || res.status < 500 || attempt === 2) {
+          break;
+        }
+        await new Promise((resolve) => window.setTimeout(resolve, 700));
+      }
+
+      if (!res) {
+        setError('Failed to reach analysis API.');
+        return;
+      }
 
       if (!res.ok) {
         if (data?.error?.message) {
@@ -64,13 +92,13 @@ export function useAnalyze(): UseAnalyzeReturn {
       }
 
       if (!data?.success) {
-        setError(data.error?.message || 'Analysis failed.');
-        setErrorSuggestion(data.error?.suggestion || null);
+        setError(data?.error?.message || 'Analysis failed.');
+        setErrorSuggestion(data?.error?.suggestion || null);
         return;
       }
 
-      setResult(data.data);
-      setMeta(data.meta);
+      setResult(data.data || null);
+      setMeta(data.meta || null);
     } catch (err: unknown) {
       if (err instanceof DOMException && err.name === 'AbortError') {
         setError('Analysis timed out. Please retry with a smaller query.');
