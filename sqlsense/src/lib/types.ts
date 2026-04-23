@@ -27,6 +27,8 @@ export interface AnalysisMeta {
   parseTimeMs: number;
   analyzeTimeMs: number;
   dialect: string;
+  coaching?: CoachingMeta;
+  challenge?: ChallengeMeta;
 }
 
 // ─── Analysis Result ───────────────────────────────────────────────
@@ -37,6 +39,16 @@ export interface AnalysisResult {
   indexes: IndexSuggestion[];
   summary: QuerySummary;
   visualization: VisualizationData;
+}
+
+export interface CoachingMeta {
+  confidence: number;
+  nudges: string[];
+  improvePrompt: string;
+}
+
+export interface ChallengeMeta {
+  estimatedDifficulty: 'easy' | 'medium' | 'hard';
 }
 
 // ─── Explanation ───────────────────────────────────────────────────
@@ -69,6 +81,7 @@ export interface Rule {
   id: string;
   name: string;
   severity: Severity;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   check: (ast: any, schema?: ParsedSchema) => OptimizationHint | null;
 }
 
@@ -190,4 +203,73 @@ export interface ExampleQuery {
   category: string;
   sql: string;
   schema?: string;
+}
+
+// Interactive challenge and progress model (hybrid-ready)
+export interface Challenge {
+  id: string;
+  title: string;
+  description: string;
+  objective: string;
+  difficulty: 'easy' | 'medium' | 'hard';
+  category: 'beginner' | 'interview' | 'power';
+  starterSql: string;
+  expectedPatterns: string[];
+  forbiddenPatterns?: string[];
+  hints: string[];
+  timeLimitSec: number;
+  schema?: string;
+}
+
+export interface ChallengeAttempt {
+  challengeId: string;
+  sql: string;
+  elapsedSec: number;
+  usedHints: number;
+}
+
+export interface ChallengeEvaluation {
+  score: number;
+  passed: boolean;
+  feedback: string[];
+  nextHint?: string;
+  xpEarned: number;
+}
+
+export interface Badge {
+  id: string;
+  name: string;
+  description: string;
+  unlockedAt?: number;
+}
+
+export interface WeeklyGoal {
+  id: string;
+  label: string;
+  target: number;
+  progress: number;
+  completed: boolean;
+}
+
+export interface UserProgress {
+  streakDays: number;
+  xp: number;
+  level: number;
+  solvedCount: number;
+  lastSolvedAt?: number;
+  badges: Badge[];
+  weeklyGoals: WeeklyGoal[];
+  gamificationEnabled: boolean;
+}
+
+export interface LearningPath {
+  id: 'beginner' | 'interview' | 'power';
+  title: string;
+  subtitle: string;
+  challengeIds: string[];
+}
+
+export interface ProgressStore {
+  getProgress(clientId: string): Promise<UserProgress>;
+  saveProgress(clientId: string, progress: UserProgress): Promise<UserProgress>;
 }

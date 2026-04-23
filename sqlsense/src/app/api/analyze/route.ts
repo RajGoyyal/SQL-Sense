@@ -6,14 +6,20 @@ import { optimize } from '@/lib/optimizer';
 import { suggestIndexes } from '@/lib/indexer';
 import { summarize } from '@/lib/summarizer';
 import { generateVisualization } from '@/lib/visualizer';
-import type { AnalyzeRequest, AnalyzeResponse, AnalyzeErrorResponse } from '@/lib/types';
+import type {
+  AnalyzeRequest,
+  AnalyzeResponse,
+  AnalyzeErrorResponse,
+  CoachingMeta,
+  ChallengeMeta,
+  QuerySummary,
+  OptimizationResult,
+} from '@/lib/types';
 
 export const runtime = 'nodejs';
 export const maxDuration = 10;
 
 export async function POST(request: NextRequest) {
-  const startTime = performance.now();
-
   try {
     const body: AnalyzeRequest = await request.json();
 
@@ -64,8 +70,8 @@ export async function POST(request: NextRequest) {
     let parsed;
     try {
       parsed = parseSQL(sql, dialect);
-    } catch (err: any) {
-      const message = err?.message || 'Failed to parse SQL query.';
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to parse SQL query.';
       // Try to extract helpful info from the error
       const suggestion = extractParseSuggestion(message);
 
@@ -104,6 +110,9 @@ export async function POST(request: NextRequest) {
 
     const analyzeTimeMs = Math.round(performance.now() - analyzeStart);
 
+    const coaching = buildCoachingMeta(optimization);
+    const challenge = buildChallengeMeta(summary, optimization);
+
     const response: AnalyzeResponse = {
       success: true,
       data: {
@@ -117,11 +126,13 @@ export async function POST(request: NextRequest) {
         parseTimeMs,
         analyzeTimeMs,
         dialect,
+        coaching,
+        challenge,
       },
     };
 
     return NextResponse.json(response);
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Analyze API error:', err);
     return NextResponse.json<AnalyzeErrorResponse>(
       {
@@ -134,6 +145,29 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+function buildCoachingMeta(optimization: OptimizationResult): CoachingMeta {
+  const confidence = Math.max(1, Math.min(100, optimization.score));
+  const nudges = optimization.hints.slice(0, 3).map((hint) => hint.suggestion);
+  const improvePrompt = optimization.hints.length > 0
+    ? `Try improving "${optimization.hints[0].title}" and rerun analysis.`
+    : 'Great job. Try rewriting with explicit column selections for readability.';
+
+  return { confidence, nudges, improvePrompt };
+}
+
+function buildChallengeMeta(summary: QuerySummary, optimization: OptimizationResult): ChallengeMeta {
+  let estimatedDifficulty: ChallengeMeta['estimatedDifficulty'] = 'easy';
+
+  if (summary.joins.length >= 2 || summary.subqueries > 0 || optimization.hints.length >= 3) {
+    estimatedDifficulty = 'medium';
+  }
+  if (summary.subqueries > 1 || summary.joins.length >= 4 || optimization.score < 45) {
+    estimatedDifficulty = 'hard';
+  }
+
+  return { estimatedDifficulty };
 }
 
 function extractParseSuggestion(message: string): string | undefined {

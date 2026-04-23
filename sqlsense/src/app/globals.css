@@ -1,8 +1,9 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Sora:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
 /* ─── Design Tokens ─────────────────────────────────────────── */
 :root {
-  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-sans: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-display: 'Sora', 'Space Grotesk', sans-serif;
   --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
   --radius-sm: 6px;
   --radius-md: 10px;
@@ -1076,4 +1077,383 @@ a:hover { text-decoration: underline; }
   .toast-container { bottom: 16px; right: 16px; left: 16px; }
   .toast { min-width: auto; }
   .drawer { width: 100%; max-width: 100%; }
+}
+
+/* Neon Academic vNext */
+[data-theme="light"] {
+  --accent: #0ea5e9;
+  --accent-hover: #0284c7;
+  --accent-soft: rgba(14, 165, 233, 0.16);
+  --bg-primary: #eef5ff;
+  --bg-secondary: rgba(255, 255, 255, 0.76);
+  --border: rgba(14, 165, 233, 0.2);
+  --surface: rgba(255, 255, 255, 0.72);
+}
+
+[data-theme="dark"] {
+  --accent: #22d3ee;
+  --accent-hover: #06b6d4;
+  --accent-soft: rgba(34, 211, 238, 0.14);
+  --bg-primary: #070910;
+  --bg-secondary: rgba(17, 21, 33, 0.74);
+  --border: rgba(34, 211, 238, 0.22);
+  --surface: rgba(16, 20, 33, 0.8);
+}
+
+body {
+  background:
+    radial-gradient(1200px 600px at 10% -10%, rgba(56, 189, 248, 0.16), transparent 60%),
+    radial-gradient(900px 500px at 100% 0%, rgba(236, 72, 153, 0.12), transparent 55%),
+    var(--bg-primary);
+}
+
+h1, h2, h3, h4, .hero-title {
+  font-family: var(--font-display);
+}
+
+.input-section,
+.result-section,
+.progress-card,
+.arena-card,
+.compare-card,
+.coach-card,
+.path-card {
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 20px 45px rgba(2, 8, 23, 0.18);
+}
+
+.coach-progress-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.coach-card,
+.progress-card,
+.arena-card,
+.compare-card,
+.learning-paths {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 18px;
+}
+
+.coach-header,
+.progress-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.coach-pill,
+.timer-chip {
+  font-size: 0.75rem;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  padding: 4px 10px;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.coach-meter {
+  width: 100%;
+  height: 8px;
+  background: var(--score-track);
+  border-radius: 999px;
+  overflow: hidden;
+  margin: 10px 0 12px;
+}
+
+.coach-meter > span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), #f472b6);
+  transition: width 320ms ease;
+}
+
+.coach-list {
+  list-style: disc;
+  padding-left: 20px;
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+}
+
+.coach-list li + li {
+  margin-top: 6px;
+}
+
+.coach-muted {
+  color: var(--text-muted);
+  font-size: 0.84rem;
+}
+
+.coach-prompt {
+  margin-top: 10px;
+  font-size: 0.84rem;
+  color: var(--text-secondary);
+  padding: 9px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--accent-soft);
+}
+
+.interactive-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin: 0 0 32px;
+}
+
+.path-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.path-card h4 {
+  font-size: 0.95rem;
+}
+
+.path-card p {
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  margin: 6px 0 10px;
+}
+
+.path-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.path-chip,
+.challenge-pill {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-secondary);
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.path-chip:hover,
+.challenge-pill:hover,
+.challenge-pill.active {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.arena-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.arena-controls {
+  display: flex;
+  gap: 8px;
+}
+
+.difficulty {
+  text-transform: uppercase;
+  font-size: 0.68rem;
+  border-radius: 8px;
+  padding: 4px 8px;
+  font-weight: 700;
+}
+
+.difficulty.easy { background: var(--success-soft); color: var(--success); }
+.difficulty.medium { background: var(--warning-soft); color: var(--warning); }
+.difficulty.hard { background: var(--danger-soft); color: var(--danger); }
+
+.arena-selector {
+  margin: 14px 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.arena-desc,
+.arena-objective,
+.arena-meta {
+  color: var(--text-secondary);
+  font-size: 0.86rem;
+  margin-bottom: 8px;
+}
+
+.arena-actions {
+  margin-top: 12px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.hint-stack {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.arena-result {
+  margin-top: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 12px;
+}
+
+.arena-result.pass {
+  border-color: var(--success);
+  background: var(--success-soft);
+}
+
+.arena-result.retry {
+  border-color: var(--warning);
+  background: var(--warning-soft);
+}
+
+.arena-result ul {
+  list-style: disc;
+  padding-left: 18px;
+  margin-top: 8px;
+}
+
+.compare-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.compare-grid h4 {
+  margin-bottom: 6px;
+  font-size: 0.86rem;
+}
+
+.compare-result {
+  margin-top: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 12px;
+  background: var(--surface);
+  font-size: 0.85rem;
+}
+
+.delta-good { color: var(--success); }
+.delta-bad { color: var(--danger); }
+
+.progress-meta {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  margin-top: 3px;
+}
+
+.progress-ring-wrap {
+  position: relative;
+  display: inline-flex;
+  margin-top: 10px;
+}
+
+.progress-ring-label {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+}
+
+.progress-ring-svg {
+  transform: rotate(-90deg);
+}
+
+.progress-track,
+.progress-stroke {
+  fill: none;
+  stroke-width: 8;
+  r: 42;
+  cx: 48;
+  cy: 48;
+}
+
+.progress-track {
+  stroke: var(--score-track);
+}
+
+.progress-stroke {
+  stroke: var(--accent);
+  stroke-dasharray: 264;
+  transition: stroke-dashoffset 320ms ease;
+}
+
+.goal-list {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.goal-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.82rem;
+}
+
+.badge-strip {
+  margin-top: 12px;
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.badge-pill {
+  font-size: 0.72rem;
+  padding: 4px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+}
+
+.badge-pill.unlocked {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@media (max-width: 920px) {
+  .coach-progress-grid,
+  .compare-grid,
+  .path-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .controls-row {
+    position: sticky;
+    bottom: 8px;
+    background: var(--bg-secondary);
+    padding: 10px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
+    z-index: 50;
+  }
 }

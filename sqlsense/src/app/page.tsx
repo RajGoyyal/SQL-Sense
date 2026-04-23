@@ -11,10 +11,17 @@ import SummaryPanel from '@/components/SummaryPanel';
 import SchemaVisualizer from '@/components/SchemaVisualizer';
 import HistoryDrawer from '@/components/HistoryDrawer';
 import KeyboardShortcutsModal from '@/components/KeyboardShortcutsModal';
+import LiveCoachPanel from '@/components/LiveCoachPanel';
+import PracticeArena from '@/components/PracticeArena';
+import CompareVariants from '@/components/CompareVariants';
+import LearningPaths from '@/components/LearningPaths';
+import ProgressPanel from '@/components/ProgressPanel';
 import { useToast } from '@/components/Toast';
 import { useAnalyze } from '@/hooks/useAnalyze';
 import { useHistory } from '@/hooks/useHistory';
 import { useTheme } from '@/hooks/useTheme';
+import { useChallenges } from '@/hooks/useChallenges';
+import { useProgress } from '@/hooks/useProgress';
 import { formatSQL } from '@/lib/parser';
 import type { ExampleQuery, SqlDialect, AnalysisResult } from '@/lib/types';
 
@@ -36,10 +43,13 @@ export default function HomePage() {
   const [activeTab, setActiveTab] = useState<TabId>('explanation');
   const [historyOpen, setHistoryOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [selectedChallengeId, setSelectedChallengeId] = useState<string | null>(null);
 
   const { result, meta, error, errorSuggestion, loading, analyze } = useAnalyze();
   const { history, addEntry, removeEntry, clearHistory } = useHistory();
   const { toggle: toggleTheme } = useTheme();
+  const { challenges, learningPaths } = useChallenges();
+  const { progress, save: saveProgress, toggleGamification, completionPct, clientId } = useProgress();
   const { toast } = useToast();
 
   // Save to history when analysis succeeds
@@ -58,18 +68,26 @@ export default function HomePage() {
 
   // Load from URL hash on mount
   useEffect(() => {
+    let frame = 0;
     try {
       const hash = window.location.hash.slice(1);
       if (hash) {
         const decoded = JSON.parse(decodeURIComponent(atob(hash)));
-        if (decoded.sql) {
-          setSqlValue(decoded.sql);
-          if (decoded.schema) { setSchemaValue(decoded.schema); setShowSchema(true); }
-          if (decoded.dialect) setDialect(decoded.dialect);
-          toast('Query loaded from shared link!', 'info');
-        }
+        frame = window.requestAnimationFrame(() => {
+          if (decoded.sql) {
+            setSqlValue(decoded.sql);
+            if (decoded.schema) { setSchemaValue(decoded.schema); setShowSchema(true); }
+            if (decoded.dialect) setDialect(decoded.dialect);
+            toast('Query loaded from shared link!', 'info');
+          }
+        });
       }
     } catch { /* ignore invalid hash */ }
+    return () => {
+      if (frame) {
+        window.cancelAnimationFrame(frame);
+      }
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -284,6 +302,15 @@ export default function HomePage() {
         </div>
       )}
 
+      <div className="coach-progress-grid">
+        <LiveCoachPanel meta={meta} loading={loading} />
+        <ProgressPanel
+          progress={progress}
+          completionPct={completionPct}
+          onToggleGamification={toggleGamification}
+        />
+      </div>
+
       {/* Results */}
       {result && (
         <div className="result-section">
@@ -319,6 +346,24 @@ export default function HomePage() {
           )}
         </div>
       )}
+
+      {/* Interactive features */}
+      <section className="interactive-section">
+        <LearningPaths
+          paths={learningPaths}
+          challenges={challenges}
+          onSelectChallenge={setSelectedChallengeId}
+        />
+        <PracticeArena
+          challenges={challenges}
+          selectedId={selectedChallengeId}
+          onSelect={setSelectedChallengeId}
+          clientId={clientId}
+          progress={progress}
+          onProgressUpdate={saveProgress}
+        />
+        <CompareVariants dialect={dialect} />
+      </section>
 
       {/* Empty state */}
       {!result && !error && !loading && (
@@ -356,7 +401,7 @@ export default function HomePage() {
 }
 
 // ─── Markdown Report Generator ─────────────────────────────────
-function generateMarkdownReport(sql: string, result: AnalysisResult, meta: any): string {
+function generateMarkdownReport(sql: string, result: AnalysisResult, meta: { parseTimeMs: number; analyzeTimeMs: number } | null): string {
   const lines = [
     '# SQLSense Analysis Report',
     '',
